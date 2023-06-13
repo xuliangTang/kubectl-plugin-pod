@@ -1,0 +1,1 @@
+go build -o /Users/zhoujiahong/go/bin/kubectl-pods main.go
