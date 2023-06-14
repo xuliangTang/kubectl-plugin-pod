@@ -40,6 +40,8 @@ func (this *K8sConfig) InitDynamicClient() dynamic.Interface {
 	return client
 }
 
-func MergeFlags(cmd *cobra.Command) {
-	cfgFlags.AddFlags(cmd.Flags())
+func MergeFlags(cmds ...*cobra.Command) {
+	for _, cmd := range cmds {
+		cfgFlags.AddFlags(cmd.Flags())
+	}
 }
