@@ -18,9 +18,9 @@ func RunCmd() {
 	clientset = config.NewK8sConfig().InitClient()
 
 	// 合并主命令的参数
-	config.MergeFlags(rootCmd, podListCmd)
+	config.MergeFlags(rootCmd, podListCmd, promptCmd)
 	// 加入子命令
-	rootCmd.AddCommand(podListCmd)
+	rootCmd.AddCommand(podListCmd, promptCmd)
 
 	podListCmd.Flags().BoolVar(&showLabels, "show-labels", false, "kubectl pods --show-labels")
 	podListCmd.Flags().StringVar(&labels, "labels", "", "kubectl pods --labels=\"app=test,version=v1\"")
