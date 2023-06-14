@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"kubectl-plugin-pod/config"
+	"kubectl-plugin-pod/tools"
 	"log"
 	"os"
 )
@@ -15,13 +16,16 @@ var clientset *kubernetes.Clientset
 
 func RunCmd() {
 	clientset = config.NewK8sConfig().InitClient()
-	config.MergeFlags(rootCmd)
-	if err := rootCmd.Execute(); err != nil {
+	config.MergeFlags(podCmd)
+
+	podCmd.Flags().BoolVar(&showLabels, "show-labels", false, "kubectl pods --show-labels")
+
+	if err := podCmd.Execute(); err != nil {
 		log.Fatalln(err)
 	}
 }
 
-var rootCmd = &cobra.Command{
+var podCmd = &cobra.Command{
 	Use:          "pods [flags]",
 	Example:      "kubectl pods [flags]",
 	SilenceUsage: true,
@@ -40,10 +44,20 @@ var rootCmd = &cobra.Command{
 		}
 
 		table := tablewriter.NewWriter(os.Stdout)
-		table.SetHeader([]string{"Name", "Namespace", "Status", "IP"})
-		for _, pod := range podList.Items {
-			table.Append([]string{pod.Name, pod.Namespace, string(pod.Status.Phase), pod.Status.PodIP})
+		headers := []string{"Name", "Namespace", "Status", "IP"}
+		if showLabels {
+			headers = append(headers, "Labels")
 		}
+		table.SetHeader(headers)
+
+		for _, pod := range podList.Items {
+			podRow := []string{pod.Name, pod.Namespace, string(pod.Status.Phase), pod.Status.PodIP}
+			if showLabels {
+				podRow = append(podRow, tools.Map2String(pod.Labels))
+			}
+			table.Append(podRow)
+		}
+		tools.SetTable(table)
 		table.Render()
 
 		return nil
