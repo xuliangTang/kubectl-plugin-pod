@@ -19,6 +19,7 @@ func RunCmd() {
 	config.MergeFlags(podCmd)
 
 	podCmd.Flags().BoolVar(&showLabels, "show-labels", false, "kubectl pods --show-labels")
+	podCmd.Flags().StringVar(&labels, "labels", "", "kubectl pods --labels=\"app=test,version=v1\"")
 
 	if err := podCmd.Execute(); err != nil {
 		log.Fatalln(err)
@@ -38,7 +39,9 @@ var podCmd = &cobra.Command{
 		if ns == "" {
 			ns = "default"
 		}
-		podList, err := clientset.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
+		podList, err := clientset.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{
+			LabelSelector: labels,
+		})
 		if err != nil {
 			return err
 		}
