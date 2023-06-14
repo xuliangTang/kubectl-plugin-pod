@@ -20,6 +20,7 @@ func RunCmd() {
 
 	podCmd.Flags().BoolVar(&showLabels, "show-labels", false, "kubectl pods --show-labels")
 	podCmd.Flags().StringVar(&labels, "labels", "", "kubectl pods --labels=\"app=test,version=v1\"")
+	podCmd.Flags().StringVar(&fields, "fields", "", "kubectl pods --fields=\"status.phase=Running\"")
 
 	if err := podCmd.Execute(); err != nil {
 		log.Fatalln(err)
@@ -41,6 +42,7 @@ var podCmd = &cobra.Command{
 		}
 		podList, err := clientset.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{
 			LabelSelector: labels,
+			FieldSelector: fields,
 		})
 		if err != nil {
 			return err
