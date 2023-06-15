@@ -3,6 +3,9 @@ package tools
 import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
+	"log"
+	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -29,4 +32,13 @@ func Map2String(m map[string]string) (ret string) {
 	}
 
 	return strings.Join(list, ",")
+}
+
+func ResetSTTY() {
+	cc := exec.Command("stty", "-F", "/dev/tty", "echo")
+	cc.Stdout = os.Stdout
+	cc.Stderr = os.Stderr
+	if err := cc.Run(); err != nil {
+		log.Println(err)
+	}
 }

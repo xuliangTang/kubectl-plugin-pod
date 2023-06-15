@@ -14,6 +14,7 @@ import (
 	"kubectl-plugin-pod/tools"
 	"os"
 	"regexp"
+	"sort"
 )
 
 var podListCmd = &cobra.Command{
@@ -94,6 +95,8 @@ var podListByCacheCmd = &cobra.Command{
 			return err
 		}
 
+		sort.Sort(coreV1PodList(podList))
+
 		table := tablewriter.NewWriter(os.Stdout)
 		headers := []string{"Name", "Namespace", "Status", "IP"}
 		if showLabels {
@@ -113,6 +116,19 @@ var podListByCacheCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// 按时间排序
+type coreV1PodList []*v1.Pod
+
+func (this coreV1PodList) Len() int {
+	return len(this)
+}
+func (this coreV1PodList) Less(i, j int) bool {
+	return this[i].CreationTimestamp.Time.After(this[j].CreationTimestamp.Time)
+}
+func (this coreV1PodList) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
 }
 
 func addListFlags() {

@@ -41,6 +41,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 		switch blocks[0] {
 		case "exit":
 			fmt.Println("Bye!")
+			// tools.ResetSTTY()
 			os.Exit(0)
 		case "use":
 			if checkArgsLen(args, 1) {
