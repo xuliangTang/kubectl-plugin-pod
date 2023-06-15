@@ -8,6 +8,9 @@ import (
 	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	apilabels "k8s.io/apimachinery/pkg/labels"
+	"kubectl-plugin-pod/config"
+	"kubectl-plugin-pod/handlers"
 	"kubectl-plugin-pod/tools"
 	"os"
 	"regexp"
@@ -26,7 +29,7 @@ var podListCmd = &cobra.Command{
 		if ns == "" {
 			ns = "default"
 		}
-		podList, err := clientset.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{
+		podList, err := config.Clientset.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{
 			LabelSelector: labels,
 			FieldSelector: fields,
 		})
@@ -80,4 +83,49 @@ func filterName(list *v1.PodList) error {
 	list.Items = newItems
 
 	return nil
+}
+
+var podListByCacheCmd = &cobra.Command{
+	Use:    "list-cache",
+	Hidden: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ns, err := cmd.Flags().GetString("namespace")
+		if err != nil {
+			return err
+		}
+
+		if ns == "" {
+			ns = "default"
+		}
+		podList, err := handlers.Fact.Core().V1().Pods().Lister().List(apilabels.Everything())
+		if err != nil {
+			return err
+		}
+
+		table := tablewriter.NewWriter(os.Stdout)
+		headers := []string{"Name", "Namespace", "Status", "IP"}
+		if showLabels {
+			headers = append(headers, "Labels")
+		}
+		table.SetHeader(headers)
+
+		for _, pod := range podList {
+			podRow := []string{pod.Name, pod.Namespace, string(pod.Status.Phase), pod.Status.PodIP}
+			if showLabels {
+				podRow = append(podRow, tools.Map2String(pod.Labels))
+			}
+			table.Append(podRow)
+		}
+		tools.SetTable(table)
+		table.Render()
+
+		return nil
+	},
+}
+
+func addListFlags() {
+	podListCmd.Flags().BoolVar(&showLabels, "show-labels", false, "kubectl pods --show-labels")
+	podListCmd.Flags().StringVar(&labels, "labels", "", "kubectl pods --labels=\"app=test,version=v1\"")
+	podListCmd.Flags().StringVar(&fields, "fields", "", "kubectl pods --fields=\"status.phase=Running\"")
+	podListCmd.Flags().StringVar(&name, "name", "", "kubectl pods --name=\"^my-\"")
 }

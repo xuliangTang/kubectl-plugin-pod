@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
+	"kubectl-plugin-pod/handlers"
 	"log"
 	"os"
 	"strings"
@@ -28,12 +29,18 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 	return func(in string) {
 		in = strings.TrimSpace(in)
 		blocks := strings.Split(in, " ")
+		var args []string
+		if len(blocks) > 1 {
+			args = blocks[1:]
+		}
+
 		switch blocks[0] {
 		case "exit":
 			fmt.Println("Bye!")
 			os.Exit(0)
 		case "list":
-			if err := podListCmd.RunE(cmd, []string{}); err != nil {
+			handlers.InitFact()
+			if err := podListByCacheCmd.RunE(cmd, args); err != nil {
 				log.Fatalln(err)
 			}
 		}
@@ -43,8 +50,8 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 
 var suggestions = []prompt.Suggest{
 	// Command
-	{"test", "this is test"},
-	{"exit", "Exit prompt"},
+	{"list", "显示pod列表"},
+	{"exit", "退出交互式窗口"},
 }
 
 func completer(in prompt.Document) []prompt.Suggest {

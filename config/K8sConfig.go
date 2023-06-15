@@ -10,6 +10,7 @@ import (
 )
 
 var cfgFlags *genericclioptions.ConfigFlags
+var Clientset *kubernetes.Clientset
 
 type K8sConfig struct{}
 
