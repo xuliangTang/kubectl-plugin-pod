@@ -50,15 +50,18 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 			fmt.Println("Bye!")
 			os.Exit(0)
 		case "use":
-			currentNS = blocks[1]
-			fmt.Println("切换namespace为:", blocks[1])
+			if checkArgsLen(args, 1) {
+				currentNS = args[0]
+				fmt.Println("切换namespace为:", blocks[1])
+			}
 		case "list":
 			if err := podListByCacheCmd.RunE(cmd, args); err != nil {
 				log.Println(err)
 			}
 		case "get":
-			if err := podGetByCacheCmd.RunE(cmd, args); err != nil {
-				log.Println(err)
+			if checkArgsLen(args, 1) {
+				// 调用bubbleTea界面
+				podGetBubbleTea(args[0])
 			}
 		}
 	}
@@ -97,4 +100,13 @@ func parseCmd(w string) (string, string) {
 		return l[0], strings.Join(l[1:], " ")
 	}
 	return w, ""
+}
+
+// 检查args数量
+func checkArgsLen(args []string, l int) (ok bool) {
+	if len(args) < l {
+		log.Println("missing args")
+		return false
+	}
+	return true
 }
