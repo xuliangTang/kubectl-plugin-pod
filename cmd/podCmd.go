@@ -12,8 +12,6 @@ var rootCmd = &cobra.Command{
 }
 
 func RunCmd() {
-	config.Clientset = config.NewK8sConfig().InitClient()
-
 	// 合并主命令的参数
 	config.MergeFlags(rootCmd, podListCmd, promptCmd)
 

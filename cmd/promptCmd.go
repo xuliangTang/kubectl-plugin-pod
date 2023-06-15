@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
-	"kubectl-plugin-pod/handlers"
+	"kubectl-plugin-pod/cmd/suggestions"
 	"log"
 	"os"
 	"regexp"
@@ -19,13 +19,6 @@ var promptCmd = &cobra.Command{
 	Example:      "kubectl pods prompt",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// 初始化informerFactory
-		handlers.InitFact()
-		// 初始化pod列表提示
-		if err := initPodSuggestions(); err != nil {
-			return err
-		}
-
 		p := prompt.New(
 			executorCmd(cmd),
 			completer,
@@ -68,7 +61,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 
 }
 
-var suggestions = []prompt.Suggest{
+var cmdSuggestions = []prompt.Suggest{
 	// Command
 	{"list", "显示pod列表"},
 	{"get", "查看pod详情"},
@@ -82,13 +75,16 @@ func completer(in prompt.Document) []prompt.Suggest {
 		return []prompt.Suggest{}
 	}
 
-	// 判断命令是get，进行自动提示pod列表
+	// 判断命令，进行自动提示
 	cmd, opt := parseCmd(in.TextBeforeCursor())
-	if cmd == "get" {
-		return prompt.FilterHasPrefix(podSuggestions, opt, true)
+	switch cmd {
+	case "get":
+		return prompt.FilterHasPrefix(suggestions.PodSuggestions, opt, true)
+	case "use":
+		return prompt.FilterHasPrefix(suggestions.NamespaceSuggestions, opt, true)
+	default:
+		return prompt.FilterHasPrefix(cmdSuggestions, w, true)
 	}
-
-	return prompt.FilterHasPrefix(suggestions, w, true)
 }
 
 // 解析字符串的命令和参数

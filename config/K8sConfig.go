@@ -12,6 +12,10 @@ import (
 var cfgFlags *genericclioptions.ConfigFlags
 var Clientset *kubernetes.Clientset
 
+func init() {
+	Clientset = NewK8sConfig().InitClient()
+}
+
 type K8sConfig struct{}
 
 func NewK8sConfig() *K8sConfig {

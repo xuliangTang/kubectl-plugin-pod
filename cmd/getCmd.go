@@ -19,7 +19,7 @@ var podGetByCacheCmd = &cobra.Command{
 			return errors.New("pod name is required")
 		}
 
-		pod, err := handlers.Fact.Core().V1().Pods().Lister().Pods(currentNS).Get(args[0])
+		pod, err := handlers.Factory().Core().V1().Pods().Lister().Pods(currentNS).Get(args[0])
 		if err != nil {
 			return err
 		}
@@ -37,7 +37,7 @@ var podGetByCacheCmd = &cobra.Command{
 // 根据gjson的规则获取pod的指定内容
 func getPodDetailByGjson(podName, path string) {
 	// 获取pod对象
-	pod, err := handlers.Fact.Core().V1().Pods().Lister().Pods(currentNS).Get(podName)
+	pod, err := handlers.Factory().Core().V1().Pods().Lister().Pods(currentNS).Get(podName)
 	if err != nil {
 		log.Println(err)
 		return

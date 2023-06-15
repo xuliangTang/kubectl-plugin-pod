@@ -3,15 +3,22 @@ package handlers
 import (
 	"k8s.io/client-go/informers"
 	"kubectl-plugin-pod/config"
+	"sync"
 )
 
-var Fact informers.SharedInformerFactory
+var fact informers.SharedInformerFactory
+var once sync.Once
 
-func InitFact() {
-	Fact = informers.NewSharedInformerFactory(config.Clientset, 0)
-	Fact.Core().V1().Pods().Informer().AddEventHandler(&PodHandler{})
+// Factory 初始化informerFactory
+func Factory() informers.SharedInformerFactory {
+	once.Do(func() {
+		fact = informers.NewSharedInformerFactory(config.Clientset, 0)
+		fact.Core().V1().Pods().Informer().AddEventHandler(&PodHandler{})
 
-	ch := make(chan struct{})
-	Fact.Start(ch)
-	Fact.WaitForCacheSync(ch)
+		ch := make(chan struct{})
+		fact.Start(ch)
+		fact.WaitForCacheSync(ch)
+	})
+
+	return fact
 }
