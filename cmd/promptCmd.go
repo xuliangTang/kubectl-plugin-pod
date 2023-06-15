@@ -54,10 +54,12 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 			fmt.Println("切换namespace为:", blocks[1])
 		case "list":
 			if err := podListByCacheCmd.RunE(cmd, args); err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 			}
 		case "get":
-
+			if err := podGetByCacheCmd.RunE(cmd, args); err != nil {
+				log.Println(err)
+			}
 		}
 	}
 
