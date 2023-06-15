@@ -11,6 +11,9 @@ import (
 	"strings"
 )
 
+// 交互式窗口当前的namespace
+var currentNS = "default"
+
 var promptCmd = &cobra.Command{
 	Use:          "prompt",
 	Example:      "kubectl pods prompt",
@@ -46,6 +49,9 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 		case "exit":
 			fmt.Println("Bye!")
 			os.Exit(0)
+		case "use":
+			currentNS = blocks[1]
+			fmt.Println("切换namespace为:", blocks[1])
 		case "list":
 			if err := podListByCacheCmd.RunE(cmd, args); err != nil {
 				log.Fatalln(err)
@@ -61,6 +67,7 @@ var suggestions = []prompt.Suggest{
 	// Command
 	{"list", "显示pod列表"},
 	{"get", "查看pod详情"},
+	{"use", "切换namespace"},
 	{"exit", "退出交互式窗口"},
 }
 

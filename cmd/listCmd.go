@@ -91,15 +91,7 @@ var podListByCacheCmd = &cobra.Command{
 	Use:    "list-cache",
 	Hidden: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ns, err := cmd.Flags().GetString("namespace")
-		if err != nil {
-			return err
-		}
-
-		if ns == "" {
-			ns = "default"
-		}
-		podList, err := handlers.Fact.Core().V1().Pods().Lister().List(apilabels.Everything())
+		podList, err := handlers.Fact.Core().V1().Pods().Lister().Pods(currentNS).List(apilabels.Everything())
 		if err != nil {
 			return err
 		}
