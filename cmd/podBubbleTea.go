@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const PodPathEvent = "event"
+
 // 运行获取pod详情的界面
 func podGetBubbleTea(podName string) {
 	items := []list.Item{
@@ -18,6 +20,7 @@ func podGetBubbleTea(podName string) {
 		podGetItem{title: "查看spec", path: "spec"},
 		podGetItem{title: "查看labels", path: "metadata.labels"},
 		podGetItem{title: "查看annotations", path: "metadata.annotations"},
+		podGetItem{title: "查看事件", path: PodPathEvent},
 	}
 
 	const defaultWidth = 20

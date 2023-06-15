@@ -3,11 +3,16 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/tidwall/gjson"
+	v1 "k8s.io/api/core/v1"
+	apilabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/json"
 	"kubectl-plugin-pod/handlers"
+	"kubectl-plugin-pod/tools"
 	"log"
+	"os"
 	"sigs.k8s.io/yaml"
 )
 
@@ -43,6 +48,24 @@ func getPodDetailByGjson(podName, path string) {
 		return
 	}
 
+	if path == PodPathEvent { // 查看pod事件
+		eventList, err := handlers.Factory().Core().V1().Events().Lister().List(apilabels.Everything())
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		var podEvents []*v1.Event
+		for _, e := range eventList {
+			// 对比event的所属资源是否是当前pod
+			if e.InvolvedObject.UID == pod.UID {
+				podEvents = append(podEvents, e)
+			}
+		}
+		printEvent(podEvents)
+		return
+	}
+
 	b, err := json.Marshal(pod)
 	if err != nil {
 		log.Println(err)
@@ -65,10 +88,28 @@ func getPodDetailByGjson(podName, path string) {
 	err = yaml.Unmarshal([]byte(ret.Raw), &retMap)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	retYaml, err := yaml.Marshal(retMap)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	fmt.Println(string(retYaml))
+}
+
+// 事件要显示的头
+var eventHeaders = []string{"Type", "Reason", "Object", "Message"}
+
+func printEvent(events []*v1.Event) {
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(eventHeaders)
+	for _, e := range events {
+		podRow := []string{e.Type, e.Reason,
+			fmt.Sprintf("%s/%s", e.InvolvedObject.Kind, e.InvolvedObject.Name), e.Message}
+
+		table.Append(podRow)
+	}
+	tools.SetTable(table)
+	table.Render()
 }
