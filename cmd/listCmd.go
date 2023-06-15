@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/c-bata/go-prompt"
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/tidwall/gjson"
@@ -121,6 +123,25 @@ var podListByCacheCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+var podSuggestions []prompt.Suggest
+
+// 初始化pod自动提示列表
+func initPodSuggestions() error {
+	podList, err := handlers.Fact.Core().V1().Pods().Lister().List(apilabels.Everything())
+	if err != nil {
+		return err
+	}
+
+	for _, pod := range podList {
+		podSuggestions = append(podSuggestions, prompt.Suggest{
+			Text:        pod.Name,
+			Description: fmt.Sprintf("%s / %s / %s", pod.Namespace, pod.Status.Phase, pod.Spec.NodeName),
+		})
+	}
+
+	return nil
 }
 
 func addListFlags() {
