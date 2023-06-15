@@ -16,6 +16,8 @@ func podGetBubbleTea(podName string) {
 		podGetItem{title: "查看全部", path: "@this"},
 		podGetItem{title: "查看metadata", path: "metadata"},
 		podGetItem{title: "查看spec", path: "spec"},
+		podGetItem{title: "查看labels", path: "metadata.labels"},
+		podGetItem{title: "查看annotations", path: "metadata.annotations"},
 	}
 
 	const defaultWidth = 20

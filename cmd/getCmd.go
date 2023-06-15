@@ -55,6 +55,11 @@ func getPodDetailByGjson(podName, path string) {
 		return
 	}
 
+	if !ret.IsObject() && !ret.IsArray() { // 不是对象或数组直接打印
+		fmt.Println(ret.Raw)
+		return
+	}
+
 	// 把json字符串转为yaml
 	retMap := make(map[string]interface{})
 	err = yaml.Unmarshal([]byte(ret.Raw), &retMap)
