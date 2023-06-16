@@ -1,4 +1,4 @@
-package cmd
+package pod
 
 var (
 	showLabels bool   // 是否显示labels

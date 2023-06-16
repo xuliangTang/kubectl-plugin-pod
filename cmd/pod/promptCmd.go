@@ -1,10 +1,10 @@
-package cmd
+package pod
 
 import (
 	"fmt"
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
-	"kubectl-plugin-pod/cmd/suggestions"
+	suggestions2 "kubectl-plugin-pod/cmd/pod/suggestions"
 	"kubectl-plugin-pod/tools"
 	"log"
 	"os"
@@ -94,9 +94,9 @@ func completer(in prompt.Document) []prompt.Suggest {
 	cmd, opt := parseCmd(in.TextBeforeCursor())
 	switch cmd {
 	case "get", "exec":
-		return prompt.FilterHasPrefix(suggestions.PodSuggestions, opt, true)
+		return prompt.FilterHasPrefix(suggestions2.PodSuggestions, opt, true)
 	case "use":
-		return prompt.FilterHasPrefix(suggestions.NamespaceSuggestions, opt, true)
+		return prompt.FilterHasPrefix(suggestions2.NamespaceSuggestions, opt, true)
 	default:
 		return prompt.FilterHasPrefix(cmdSuggestions, w, true)
 	}

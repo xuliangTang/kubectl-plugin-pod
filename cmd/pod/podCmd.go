@@ -1,4 +1,4 @@
-package cmd
+package pod
 
 import (
 	"github.com/spf13/cobra"
@@ -6,22 +6,22 @@ import (
 	"log"
 )
 
-var rootCmd = &cobra.Command{
+var podCmd = &cobra.Command{
 	Use:          "kubectl pods [flags]",
 	SilenceUsage: true,
 }
 
 func RunCmd() {
 	// 合并主命令的参数
-	config.MergeFlags(rootCmd, podListCmd, promptCmd)
+	config.MergeFlags(podCmd, podListCmd, promptCmd)
 
 	// 加载pod列表flag
 	addListFlags()
 
 	// 加入子命令
-	rootCmd.AddCommand(podListCmd, promptCmd)
+	podCmd.AddCommand(podListCmd, promptCmd)
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := podCmd.Execute(); err != nil {
 		log.Fatalln(err)
 	}
 }
