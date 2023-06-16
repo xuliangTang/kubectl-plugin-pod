@@ -61,6 +61,10 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 				// 调用bubbleTea界面
 				podGetBubbleTea(args[0])
 			}
+		case "exec":
+			if checkArgsLen(args, 1) {
+				execBubbleTea(args[0])
+			}
 		}
 	}
 
@@ -71,6 +75,7 @@ var cmdSuggestions = []prompt.Suggest{
 	{"list", "显示pod列表"},
 	{"get", "查看pod详情"},
 	{"use", "切换namespace"},
+	{"exec", "进入pod shell"},
 	{"clear", "清除控制台输出"},
 	{"exit", "退出交互式窗口"},
 }
@@ -84,7 +89,7 @@ func completer(in prompt.Document) []prompt.Suggest {
 	// 判断命令，进行自动提示
 	cmd, opt := parseCmd(in.TextBeforeCursor())
 	switch cmd {
-	case "get":
+	case "get", "exec":
 		return prompt.FilterHasPrefix(suggestions.PodSuggestions, opt, true)
 	case "use":
 		return prompt.FilterHasPrefix(suggestions.NamespaceSuggestions, opt, true)
@@ -113,6 +118,7 @@ func checkArgsLen(args []string, l int) (ok bool) {
 	return true
 }
 
+// 清除控制台输出
 func clearConsole() {
 	myConsoleWriter.EraseScreen()
 	myConsoleWriter.CursorGoTo(0, 0)

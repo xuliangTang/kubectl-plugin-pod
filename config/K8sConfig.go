@@ -11,6 +11,7 @@ import (
 
 var cfgFlags *genericclioptions.ConfigFlags
 var Clientset *kubernetes.Clientset
+var ClientsetConfig *rest.Config
 
 func init() {
 	Clientset = NewK8sConfig().InitClient()
@@ -27,6 +28,7 @@ func (*K8sConfig) K8sRestConfigFromCli() *rest.Config {
 	cfgFlags = genericclioptions.NewConfigFlags(true)
 	config, err := cfgFlags.ToRawKubeConfigLoader().ClientConfig()
 	tools.Check(err)
+	ClientsetConfig = config
 
 	return config
 }

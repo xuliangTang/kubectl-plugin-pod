@@ -62,12 +62,12 @@ var (
 	// quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
 )
 
-type itemDelegate struct{}
+type podGetItemDelegate struct{}
 
-func (d itemDelegate) Height() int                             { return 1 }
-func (d itemDelegate) Spacing() int                            { return 0 }
-func (d itemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+func (d podGetItemDelegate) Height() int                             { return 1 }
+func (d podGetItemDelegate) Spacing() int                            { return 0 }
+func (d podGetItemDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+func (d podGetItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	i, ok := listItem.(podGetItem)
 	if !ok {
 		return
@@ -105,7 +105,7 @@ type podGetModel struct {
 func newPodGetModel(items []list.Item, podName string) *podGetModel {
 	const defaultWidth = 20
 	const listHeight = 14
-	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
+	l := list.New(items, podGetItemDelegate{}, defaultWidth, listHeight)
 	l.Title = "请选择你的操作"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)

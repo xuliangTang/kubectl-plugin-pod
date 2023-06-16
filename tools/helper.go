@@ -42,3 +42,12 @@ func ResetSTTY() {
 		log.Println(err)
 	}
 }
+
+func InArray(arr []string, item string) bool {
+	for _, p := range arr {
+		if p == item {
+			return true
+		}
+	}
+	return false
+}
