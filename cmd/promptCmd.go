@@ -65,6 +65,8 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 			if checkArgsLen(args, 1) {
 				execBubbleTea(args[0])
 			}
+		case "top":
+			getPodCapacityUsage()
 		}
 	}
 
@@ -76,6 +78,7 @@ var cmdSuggestions = []prompt.Suggest{
 	{"get", "查看pod详情"},
 	{"use", "切换namespace"},
 	{"exec", "进入pod shell"},
+	{"top", "查看pod列表的指标数据"},
 	{"clear", "清除控制台输出"},
 	{"exit", "退出交互式窗口"},
 }
