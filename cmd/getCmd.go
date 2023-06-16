@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/olekukonko/tablewriter"
@@ -9,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/json"
+	"kubectl-plugin-pod/config"
 	"kubectl-plugin-pod/handlers"
 	"kubectl-plugin-pod/tools"
 	"log"
@@ -45,6 +47,19 @@ func getPodDetailByGjson(podName, path string) {
 	pod, err := handlers.Factory().Core().V1().Pods().Lister().Pods(currentNS).Get(podName)
 	if err != nil {
 		log.Println(err)
+		return
+	}
+
+	if path == PodPathLog { // 查看pod日志
+		req := config.Clientset.CoreV1().Pods(currentNS).
+			GetLogs(podName, &v1.PodLogOptions{})
+		ret := req.Do(context.Background())
+		b, err := ret.Raw()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		fmt.Println(string(b))
 		return
 	}
 
