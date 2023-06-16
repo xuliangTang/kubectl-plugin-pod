@@ -42,7 +42,7 @@ var podGetByCacheCmd = &cobra.Command{
 }
 
 // 根据gjson的规则获取pod的指定内容
-func getPodDetailByGjson(podName, path string) {
+func getPodDetailByGjson(podName string, item podGetItem) {
 	// 获取pod对象
 	pod, err := handlers.Factory().Core().V1().Pods().Lister().Pods(currentNS).Get(podName)
 	if err != nil {
@@ -50,9 +50,21 @@ func getPodDetailByGjson(podName, path string) {
 		return
 	}
 
-	if path == PodPathLog { // 查看pod日志
+	if item.path == PodPathLog { // 查看pod日志
+		// 代表是sidecar，并且没有选择查看的容器，调用选择容器列表的bubbleTea界面
+		if len(pod.Spec.Containers) > 1 && item.containerName == "" {
+			// 使用协程，TODO 否则会出现各种bug，原因未知
+			// 比如第二个下拉列表需要选择2次才能出来结果，还有按上键2次才能显示上一次的命令等
+			go podGetLogBubbleTea(podName, pod.Spec.Containers)
+			return
+		}
+
+		var tailLine int64 = 100
 		req := config.Clientset.CoreV1().Pods(currentNS).
-			GetLogs(podName, &v1.PodLogOptions{})
+			GetLogs(podName, &v1.PodLogOptions{
+				Container: item.containerName, // 指定容器名称
+				TailLines: &tailLine,
+			})
 		ret := req.Do(context.Background())
 		b, err := ret.Raw()
 		if err != nil {
@@ -63,7 +75,7 @@ func getPodDetailByGjson(podName, path string) {
 		return
 	}
 
-	if path == PodPathEvent { // 查看pod事件
+	if item.path == PodPathEvent { // 查看pod事件
 		eventList, err := handlers.Factory().Core().V1().Events().Lister().List(apilabels.Everything())
 		if err != nil {
 			log.Println(err)
@@ -87,9 +99,9 @@ func getPodDetailByGjson(podName, path string) {
 		return
 	}
 
-	ret := gjson.Get(string(b), path)
+	ret := gjson.Get(string(b), item.path)
 	if !ret.Exists() {
-		log.Println("无法获取对应的内容:", path)
+		log.Println("无法获取对应的内容:", item.path)
 		return
 	}
 

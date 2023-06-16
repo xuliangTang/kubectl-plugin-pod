@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"io"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 )
@@ -27,17 +28,24 @@ func podGetBubbleTea(podName string) {
 		podGetItem{title: "查看annotations", path: "metadata.annotations"},
 	}
 
-	const defaultWidth = 20
-	const listHeight = 14
-	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.Title = "请选择你的操作"
-	l.SetShowStatusBar(false)
-	l.SetFilteringEnabled(false)
-	l.Styles.Title = titleStyle
-	l.Styles.PaginationStyle = paginationStyle
-	l.Styles.HelpStyle = helpStyle
+	m := newPodGetModel(items, podName)
 
-	m := podGetModel{list: l, podName: podName}
+	if _, err := tea.NewProgram(m).Run(); err != nil {
+		fmt.Println("Error running program:", err)
+		os.Exit(1)
+	}
+}
+
+// 运行选择pod容器获取日志的界面
+func podGetLogBubbleTea(podName string, containers []v1.Container) {
+	items := make([]list.Item, len(containers))
+	for i, c := range containers {
+		items[i] = podGetItem{title: c.Name, path: PodPathLog, containerName: c.Name}
+	}
+
+	m := newPodGetModel(items, podName)
+	m.nextLog = true
+	m.list.Title = "请选择查看的容器"
 
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
@@ -51,7 +59,7 @@ var (
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
 	paginationStyle   = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
 	helpStyle         = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
-	quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
+	// quitTextStyle     = lipgloss.NewStyle().Margin(1, 0, 2, 4)
 )
 
 type itemDelegate struct{}
@@ -79,17 +87,33 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type podGetItem struct {
-	title string // 选项名称
-	path  string // gjson过滤规则
+	title         string // 选项名称
+	path          string // gjson过滤规则
+	containerName string // 查看日志的容器名称
 }
 
 func (i podGetItem) FilterValue() string { return "" }
 
 type podGetModel struct {
+	nextLog  bool // 是否嵌套选择容器界面
 	podName  string
 	list     list.Model
 	choice   string
 	quitting bool
+}
+
+func newPodGetModel(items []list.Item, podName string) *podGetModel {
+	const defaultWidth = 20
+	const listHeight = 14
+	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
+	l.Title = "请选择你的操作"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	l.Styles.Title = titleStyle
+	l.Styles.PaginationStyle = paginationStyle
+	l.Styles.HelpStyle = helpStyle
+
+	return &podGetModel{list: l, podName: podName}
 }
 
 func (m podGetModel) Init() tea.Cmd {
@@ -115,7 +139,10 @@ func (m podGetModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// 获取并输出pod指定的内容
-			getPodDetailByGjson(m.podName, i.path)
+			tea.ClearScrollArea()
+			// tea.ClearScreen()
+			getPodDetailByGjson(m.podName, i)
+
 			// 退出界面
 			return m, tea.Quit
 		}
@@ -127,8 +154,5 @@ func (m podGetModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m podGetModel) View() string {
-	if m.quitting {
-		return quitTextStyle.Render("已退出")
-	}
 	return "\n" + m.list.View()
 }
