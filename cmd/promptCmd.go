@@ -13,6 +13,7 @@ import (
 
 // 交互式窗口当前的namespace
 var currentNS = "default"
+var myConsoleWriter = prompt.NewStdoutWriter() //定义一个自己的writer
 
 var promptCmd = &cobra.Command{
 	Use:          "prompt",
@@ -23,6 +24,7 @@ var promptCmd = &cobra.Command{
 			executorCmd(cmd),
 			completer,
 			prompt.OptionPrefix(">>> "),
+			prompt.OptionWriter(myConsoleWriter),
 		)
 		p.Run()
 		return nil
@@ -48,6 +50,8 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 				currentNS = args[0]
 				fmt.Println("切换namespace为:", blocks[1])
 			}
+		case "clear":
+			clearConsole()
 		case "list":
 			if err := podListByCacheCmd.RunE(cmd, args); err != nil {
 				log.Println(err)
@@ -67,6 +71,7 @@ var cmdSuggestions = []prompt.Suggest{
 	{"list", "显示pod列表"},
 	{"get", "查看pod详情"},
 	{"use", "切换namespace"},
+	{"clear", "清除控制台输出"},
 	{"exit", "退出交互式窗口"},
 }
 
@@ -106,4 +111,10 @@ func checkArgsLen(args []string, l int) (ok bool) {
 		return false
 	}
 	return true
+}
+
+func clearConsole() {
+	myConsoleWriter.EraseScreen()
+	myConsoleWriter.CursorGoTo(0, 0)
+	myConsoleWriter.Flush()
 }
