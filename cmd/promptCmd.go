@@ -5,6 +5,7 @@ import (
 	"github.com/c-bata/go-prompt"
 	"github.com/spf13/cobra"
 	"kubectl-plugin-pod/cmd/suggestions"
+	"kubectl-plugin-pod/tools"
 	"log"
 	"os"
 	"regexp"
@@ -43,7 +44,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 		switch blocks[0] {
 		case "exit":
 			fmt.Println("Bye!")
-			// tools.ResetSTTY()
+			tools.ResetSTTY()
 			os.Exit(0)
 		case "use":
 			if checkArgsLen(args, 1) {
