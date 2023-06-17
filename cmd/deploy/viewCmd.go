@@ -1,10 +1,21 @@
 package deploy
 
 import (
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
+	"kubectl-plugin-pod/handlers"
+	"sigs.k8s.io/yaml"
 	"sort"
 )
+
+// view组成
+type viewComponent struct {
+	depList *tview.List
+	detail  *tview.TextView
+}
+
+var viewComp = &viewComponent{}
 
 var viewCmd = &cobra.Command{
 	Use:          "view",
@@ -19,8 +30,12 @@ var viewCmd = &cobra.Command{
 				SetText(text)
 		}
 		list := renderDeployView(app)
-		detail := newPrimitive("详情")
+		detail := renderDetail(app)
 		pod := newPrimitive("Pods")
+
+		// 代表加入组件组成
+		viewComp.detail = detail
+		viewComp.depList = list
 
 		grid := tview.NewGrid().
 			SetRows(3, 0, 3).
@@ -52,12 +67,51 @@ func renderDeployView(app *tview.Application) *tview.List {
 
 	// 插入列表
 	list := tview.NewList()
+	list.SetBlurFunc(func() {
+		list.SetBackgroundColor(tcell.Color16) // black
+	})
+	list.SetFocusFunc(func() {
+		list.SetBackgroundColor(tcell.Color23)
+	})
 	for _, dep := range depList {
-		list.AddItem(dep.Name, "", rune(dep.Name[0]), nil)
+		depName := dep.Name
+		list.AddItem(dep.Name, "", rune(dep.Name[0]), func() {
+			viewComp.detail.SetText("")
+			getDep, err := handlers.Factory().Apps().V1().Deployments().Lister().Deployments(currentNS).Get(depName)
+			if err != nil {
+				viewComp.detail.SetText(err.Error())
+				return
+			}
+			b, _ := yaml.Marshal(getDep)
+			viewComp.detail.SetText(string(b))
+			// 切换焦点到中间详情部分
+			app.SetFocus(viewComp.detail)
+		})
 	}
 	list.AddItem("Quit", "Press to exit", 'q', func() {
 		app.Stop()
 	})
 
 	return list
+}
+
+// 渲染中间部分的详情
+func renderDetail(app *tview.Application) *tview.TextView {
+	textView := tview.NewTextView().SetWordWrap(true)
+	textView.SetBlurFunc(func() {
+		textView.SetBackgroundColor(tcell.Color16) // black
+	})
+	textView.SetFocusFunc(func() {
+		textView.SetBackgroundColor(tcell.Color23)
+	})
+
+	// 监听键盘事件
+	textView.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyESC {
+			// 切换焦点到左边的deploy列表
+			app.SetFocus(viewComp.depList)
+		}
+	})
+
+	return textView
 }
