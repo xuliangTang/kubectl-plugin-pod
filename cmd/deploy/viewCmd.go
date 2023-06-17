@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
@@ -13,6 +14,7 @@ import (
 type viewComponent struct {
 	depList *tview.List
 	detail  *tview.TextView
+	podList *tview.List
 }
 
 var viewComp = &viewComponent{}
@@ -31,11 +33,12 @@ var viewCmd = &cobra.Command{
 		}
 		list := renderDeployView(app)
 		detail := renderDetail(app)
-		pod := newPrimitive("Pods")
+		pod := renderPodView(app)
 
 		// 代表加入组件组成
 		viewComp.detail = detail
 		viewComp.depList = list
+		viewComp.podList = pod
 
 		grid := tview.NewGrid().
 			SetRows(3, 0, 3).
@@ -57,7 +60,7 @@ var viewCmd = &cobra.Command{
 	},
 }
 
-// 渲染deployment view界面
+// 渲染deployment列表
 func renderDeployView(app *tview.Application) *tview.List {
 	depList := listDeploy()
 	if depList == nil {
@@ -75,7 +78,8 @@ func renderDeployView(app *tview.Application) *tview.List {
 	})
 	for _, dep := range depList {
 		depName := dep.Name
-		list.AddItem(dep.Name, "", rune(dep.Name[0]), func() {
+		list.AddItem(dep.Name, fmt.Sprintf("%d/%d", dep.Status.ReadyReplicas, dep.Status.Replicas), rune(dep.Name[0]), func() {
+			// 选中后设置deploy详情
 			viewComp.detail.SetText("")
 			getDep, err := handlers.Factory().Apps().V1().Deployments().Lister().Deployments(currentNS).Get(depName)
 			if err != nil {
@@ -84,6 +88,15 @@ func renderDeployView(app *tview.Application) *tview.List {
 			}
 			b, _ := yaml.Marshal(getDep)
 			viewComp.detail.SetText(string(b))
+
+			// 设置pod列表
+			viewComp.podList.Clear()
+			podList := getPodsByDeploy(getDep)
+			for _, pod := range podList {
+				podName := pod.Name
+				viewComp.podList.AddItem(podName, fmt.Sprintf("%s/%s", pod.Spec.NodeName, pod.Status.Phase), []rune(podName)[0], nil)
+			}
+
 			// 切换焦点到中间详情部分
 			app.SetFocus(viewComp.detail)
 		})
@@ -110,8 +123,29 @@ func renderDetail(app *tview.Application) *tview.TextView {
 		if key == tcell.KeyESC {
 			// 切换焦点到左边的deploy列表
 			app.SetFocus(viewComp.depList)
+		} else if key == tcell.KeyEnter {
+			// 切换焦点到右边的pod列表
+			app.SetFocus(viewComp.podList)
 		}
 	})
 
 	return textView
+}
+
+// 渲染右边的pod列表
+func renderPodView(app *tview.Application) *tview.List {
+	list := tview.NewList()
+	list.SetBlurFunc(func() {
+		list.SetBackgroundColor(tcell.Color16) // black
+	})
+	list.SetFocusFunc(func() {
+		list.SetBackgroundColor(tcell.Color23)
+	})
+
+	// esc切换到详情
+	list.SetDoneFunc(func() {
+		app.SetFocus(viewComp.detail)
+	})
+
+	return list
 }
