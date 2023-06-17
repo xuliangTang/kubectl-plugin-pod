@@ -1,4 +1,4 @@
-package pod
+package deploy
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 	"kubectl-plugin-pod/suggestions"
 	"kubectl-plugin-pod/tools"
-	"log"
 	"os"
 	"strings"
 )
@@ -17,7 +16,7 @@ var myConsoleWriter = prompt.NewStdoutWriter() // 定义一个自己的writer
 
 var promptCmd = &cobra.Command{
 	Use:          "prompt",
-	Example:      "kubectl pods prompt",
+	Example:      "kubectl deploy prompt",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		p := prompt.New(
@@ -53,20 +52,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 		case "clear":
 			clearConsole()
 		case "list":
-			if err := podListByCacheCmd.RunE(cmd, args); err != nil {
-				log.Println(err)
-			}
-		case "get":
-			if tools.CheckArgsLen(args, 1) {
-				// 调用bubbleTea界面
-				podGetBubbleTea(args[0])
-			}
-		case "exec":
-			if tools.CheckArgsLen(args, 1) {
-				execBubbleTea(args[0])
-			}
-		case "top":
-			getPodCapacityUsage()
+			renderDeploy()
 		}
 	}
 
@@ -74,11 +60,8 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 
 var cmdSuggestions = []prompt.Suggest{
 	// Command
-	{"list", "显示pod列表"},
-	{"get", "查看pod详情"},
+	{"list", "显示deployment列表"},
 	{"use", "切换namespace"},
-	{"exec", "进入pod shell"},
-	{"top", "查看pod列表的指标数据"},
 	{"clear", "清除控制台输出"},
 	{"exit", "退出交互式窗口"},
 }
@@ -92,10 +75,10 @@ func completer(in prompt.Document) []prompt.Suggest {
 	// 判断命令，进行自动提示
 	cmd, opt := tools.ParseCmd(in.TextBeforeCursor())
 	switch cmd {
-	case "get", "exec":
-		return prompt.FilterHasPrefix(suggestions.PodSuggestions, opt, true)
 	case "use":
 		return prompt.FilterHasPrefix(suggestions.NamespaceSuggestions, opt, true)
+	case "get":
+		return prompt.FilterHasPrefix(suggestions.DeploySuggestions, opt, true)
 	default:
 		return prompt.FilterHasPrefix(cmdSuggestions, w, true)
 	}

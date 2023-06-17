@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -32,6 +33,26 @@ func Map2String(m map[string]string) (ret string) {
 	}
 
 	return strings.Join(list, ",")
+}
+
+// CheckArgsLen 检查args数量
+func CheckArgsLen(args []string, l int) (ok bool) {
+	if len(args) < l {
+		log.Println("missing args")
+		return false
+	}
+	return true
+}
+
+// ParseCmd 解析字符串的命令和参数
+func ParseCmd(w string) (string, string) {
+	w = regexp.MustCompile("\\s+").ReplaceAllString(w, " ")
+	l := strings.Split(w, " ")
+
+	if len(l) >= 2 {
+		return l[0], strings.Join(l[1:], " ")
+	}
+	return w, ""
 }
 
 func ResetSTTY() {
