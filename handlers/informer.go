@@ -16,6 +16,7 @@ func Factory() informers.SharedInformerFactory {
 		fact.Core().V1().Pods().Informer().AddEventHandler(&PodHandler{})
 		fact.Core().V1().Events().Informer().AddEventHandler(&EventHandler{})
 		fact.Apps().V1().Deployments().Informer().AddEventHandler(&DeployHandler{})
+		fact.Apps().V1().ReplicaSets().Informer().AddEventHandler(&ReplicasHandler{})
 
 		ch := make(chan struct{})
 		fact.Start(ch)

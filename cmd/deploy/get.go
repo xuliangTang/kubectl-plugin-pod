@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/tidwall/gjson"
 	"io"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -20,6 +21,7 @@ import (
 
 const (
 	DeployPathEvent = "__event__"
+	DeployPodsEvent = "__pods__"
 )
 
 // 调用查看deploy详情界面
@@ -28,6 +30,7 @@ func getDeploy(deployName string) {
 		deployGetItem{title: "查看全部", path: "@this"},
 		deployGetItem{title: "查看metadata", path: "metadata"},
 		deployGetItem{title: "查看spec", path: "spec"},
+		deployGetItem{title: "查看pod列表", path: DeployPodsEvent},
 		deployGetItem{title: "查看事件", path: DeployPathEvent},
 		deployGetItem{title: "查看labels", path: "metadata.labels"},
 		deployGetItem{title: "查看annotations", path: "metadata.annotations"},
@@ -49,7 +52,13 @@ func getDeployDetailByGjson(deployName string, item deployGetItem) {
 		return
 	}
 
-	if item.path == DeployPathEvent {
+	if item.path == DeployPodsEvent { // 查看pod列表
+		podList := getPodsByDeploy(dep)
+		tools.PrintPods(podList)
+		return
+	}
+
+	if item.path == DeployPathEvent { // 查看事件
 		eventList, err := handlers.Factory().Core().V1().Events().Lister().Events(currentNS).List(labels.Everything())
 		if err != nil {
 			log.Println(err)
@@ -102,6 +111,54 @@ func getDeployDetailByGjson(deployName string, item deployGetItem) {
 		return
 	}
 	fmt.Println(string(retYaml))
+}
+
+const revision = "deployment.kubernetes.io/revision"
+
+// 获取deploy下的pod列表
+func getPodsByDeploy(deploy *appsv1.Deployment) (pods []*v1.Pod) {
+	// 获取所有rs
+	rsList, err := handlers.Factory().Apps().V1().ReplicaSets().Lister().ReplicaSets(currentNS).List(labels.Everything())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	for _, rs := range rsList { // 判断rs是否属于当前deployment
+		if rs.Annotations[revision] != deploy.Annotations[revision] {
+			continue
+		}
+
+		for _, ref := range rs.OwnerReferences {
+			if ref.UID == deploy.UID {
+				pods = append(pods, getPodsByRs(rs)...)
+				break
+			}
+		}
+	}
+
+	return
+}
+
+// 获取replicaSet关联的pod
+func getPodsByRs(rs *appsv1.ReplicaSet) (pods []*v1.Pod) {
+	// 获取所有pod
+	podList, err := handlers.Factory().Core().V1().Pods().Lister().Pods(currentNS).List(labels.Everything())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	for _, pod := range podList { // 判断pod是否属于当前rs
+		for _, ref := range pod.OwnerReferences {
+			if ref.UID == rs.UID {
+				pods = append(pods, pod)
+				break
+			}
+		}
+	}
+
+	return
 }
 
 var (

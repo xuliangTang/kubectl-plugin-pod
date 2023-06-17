@@ -71,6 +71,20 @@ func PrintEvent(events []*v1.Event) {
 	table.Render()
 }
 
+// PrintPods 输出pod列表
+func PrintPods(pods []*v1.Pod) {
+	var podHeaders = []string{"Name", "IP", "Status", "Node", "CreatedAt"}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(podHeaders)
+	for _, pod := range pods {
+		podRow := []string{pod.Name, pod.Status.PodIP,
+			string(pod.Status.Phase), pod.Spec.NodeName, pod.CreationTimestamp.Format("2006-01-02 15:04")}
+		table.Append(podRow)
+	}
+	SetTable(table)
+	table.Render()
+}
+
 func ResetSTTY() {
 	cc := exec.Command("stty", "-F", "/dev/tty", "echo")
 	cc.Stdout = os.Stdout
