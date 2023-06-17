@@ -53,6 +53,10 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 			clearConsole()
 		case "list":
 			renderDeploy()
+		case "scale":
+			if tools.CheckArgsLen(args, 1) {
+				scaleDeploy(args[0])
+			}
 		}
 	}
 
@@ -61,6 +65,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 var cmdSuggestions = []prompt.Suggest{
 	// Command
 	{"list", "显示deployment列表"},
+	{"scale", "伸缩deployment副本"},
 	{"use", "切换namespace"},
 	{"clear", "清除控制台输出"},
 	{"exit", "退出交互式窗口"},
@@ -77,7 +82,7 @@ func completer(in prompt.Document) []prompt.Suggest {
 	switch cmd {
 	case "use":
 		return prompt.FilterHasPrefix(suggestions.NamespaceSuggestions, opt, true)
-	case "get":
+	case "get", "scale":
 		return prompt.FilterHasPrefix(suggestions.DeploySuggestions, opt, true)
 	default:
 		return prompt.FilterHasPrefix(cmdSuggestions, w, true)
