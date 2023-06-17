@@ -13,6 +13,7 @@ var once sync.Once
 func Factory() informers.SharedInformerFactory {
 	once.Do(func() {
 		fact = informers.NewSharedInformerFactory(config.Clientset, 0)
+		fact.Core().V1().Namespaces().Informer().AddEventHandler(&NamespaceHandler{})
 		fact.Core().V1().Pods().Informer().AddEventHandler(&PodHandler{})
 		fact.Core().V1().Events().Informer().AddEventHandler(&EventHandler{})
 		fact.Apps().V1().Deployments().Informer().AddEventHandler(&DeployHandler{})
