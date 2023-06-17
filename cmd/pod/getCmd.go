@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/cobra"
 	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
@@ -14,7 +13,6 @@ import (
 	"kubectl-plugin-pod/handlers"
 	"kubectl-plugin-pod/tools"
 	"log"
-	"os"
 	"sigs.k8s.io/yaml"
 )
 
@@ -89,7 +87,7 @@ func getPodDetailByGjson(podName string, item podGetItem) {
 				podEvents = append(podEvents, e)
 			}
 		}
-		printEvent(podEvents)
+		tools.PrintEvent(podEvents)
 		return
 	}
 
@@ -111,7 +109,12 @@ func getPodDetailByGjson(podName string, item podGetItem) {
 	}
 
 	// 把json字符串转为yaml
-	retMap := make(map[string]interface{})
+	var retMap interface{}
+	if ret.IsObject() {
+		retMap = make(map[string]interface{})
+	} else if ret.IsArray() {
+		retMap = []interface{}{}
+	}
 	err = yaml.Unmarshal([]byte(ret.Raw), &retMap)
 	if err != nil {
 		log.Println(err)
@@ -123,20 +126,4 @@ func getPodDetailByGjson(podName string, item podGetItem) {
 		return
 	}
 	fmt.Println(string(retYaml))
-}
-
-// 事件要显示的头
-var eventHeaders = []string{"Type", "Reason", "Object", "Message"}
-
-func printEvent(events []*v1.Event) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader(eventHeaders)
-	for _, e := range events {
-		podRow := []string{e.Type, e.Reason,
-			fmt.Sprintf("%s/%s", e.InvolvedObject.Kind, e.InvolvedObject.Name), e.Message}
-
-		table.Append(podRow)
-	}
-	tools.SetTable(table)
-	table.Render()
 }

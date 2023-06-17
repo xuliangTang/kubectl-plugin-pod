@@ -57,6 +57,10 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 			if tools.CheckArgsLen(args, 1) {
 				scaleDeploy(args[0])
 			}
+		case "get":
+			if tools.CheckArgsLen(args, 1) {
+				getDeploy(args[0])
+			}
 		}
 	}
 
@@ -65,6 +69,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 var cmdSuggestions = []prompt.Suggest{
 	// Command
 	{"list", "显示deployment列表"},
+	{"get", "查看deployment详情"},
 	{"scale", "伸缩deployment副本"},
 	{"use", "切换namespace"},
 	{"clear", "清除控制台输出"},

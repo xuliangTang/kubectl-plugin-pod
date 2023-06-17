@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"github.com/olekukonko/tablewriter"
+	v1 "k8s.io/api/core/v1"
 	"log"
 	"os"
 	"os/exec"
@@ -53,6 +54,21 @@ func ParseCmd(w string) (string, string) {
 		return l[0], strings.Join(l[1:], " ")
 	}
 	return w, ""
+}
+
+// PrintEvent 输出event列表
+func PrintEvent(events []*v1.Event) {
+	var eventHeaders = []string{"Type", "Reason", "Object", "Message"}
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader(eventHeaders)
+	for _, e := range events {
+		podRow := []string{e.Type, e.Reason,
+			fmt.Sprintf("%s/%s", e.InvolvedObject.Kind, e.InvolvedObject.Name), e.Message}
+
+		table.Append(podRow)
+	}
+	SetTable(table)
+	table.Render()
 }
 
 func ResetSTTY() {
