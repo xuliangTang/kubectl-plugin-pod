@@ -16,10 +16,10 @@ var deployCmd = &cobra.Command{
 
 func RunCmd() {
 	// 合并主命令的参数
-	config.MergeFlags(deployCmd, promptCmd)
+	config.MergeFlags(deployCmd, promptCmd, viewCmd)
 
 	// 加入子命令
-	deployCmd.AddCommand(promptCmd)
+	deployCmd.AddCommand(promptCmd, viewCmd)
 
 	if err := deployCmd.Execute(); err != nil {
 		log.Fatalln(err)

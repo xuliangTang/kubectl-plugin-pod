@@ -57,3 +57,16 @@ func (this sortDeploy) Less(i, j int) bool {
 func (this sortDeploy) Swap(i, j int) {
 	this[i], this[j] = this[j], this[i]
 }
+
+// 按名称首字母排序
+type sortDeployByName []*appsv1.Deployment
+
+func (this sortDeployByName) Len() int {
+	return len(this)
+}
+func (this sortDeployByName) Less(i, j int) bool {
+	return []rune(this[i].Name)[0] < []rune(this[j].Name)[0]
+}
+func (this sortDeployByName) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
