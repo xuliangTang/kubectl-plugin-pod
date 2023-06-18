@@ -191,7 +191,7 @@ func renderDeployView(app *tview.Application) *tview.List {
 		list.SetBackgroundColor(tcell.Color16) // black
 	})
 	list.SetFocusFunc(func() {
-		list.SetBackgroundColor(tcell.Color23)
+		list.SetBackgroundColor(tcell.Color59)
 	})
 
 	list.SetBorder(true)
@@ -288,7 +288,7 @@ func renderDetail(app *tview.Application) *tview.TextView {
 		textView.SetBackgroundColor(tcell.Color16) // black
 	})
 	textView.SetFocusFunc(func() {
-		textView.SetBackgroundColor(tcell.Color23)
+		textView.SetBackgroundColor(tcell.Color59)
 	})
 
 	textView.SetBorder(true)
@@ -315,7 +315,7 @@ func renderPodView(app *tview.Application) *tview.List {
 		list.SetBackgroundColor(tcell.Color16) // black
 	})
 	list.SetFocusFunc(func() {
-		list.SetBackgroundColor(tcell.Color23)
+		list.SetBackgroundColor(tcell.Color59)
 	})
 
 	list.SetBorder(true)
@@ -340,7 +340,7 @@ func renderFooter(app *tview.Application) *tview.TextView {
 		textView.SetBackgroundColor(tcell.Color16) // black
 	})
 	textView.SetFocusFunc(func() {
-		textView.SetBackgroundColor(tcell.Color23)
+		textView.SetBackgroundColor(tcell.Color59)
 	})
 
 	return textView
