@@ -14,8 +14,10 @@ import (
 	"log"
 	"sigs.k8s.io/yaml"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
 )
 
 // view组成
@@ -79,8 +81,9 @@ var viewCmd = &cobra.Command{
 
 		// 监听deploy，有变更后重新渲染列表
 		go func() {
-			for _ = range tools.DeployChan {
+			for dep := range tools.DeployChan {
 				if viewComp.ok {
+					viewComp.footer.SetText(time.Now().Format("2006-01-02 15:04:05") + " deployment update: " + dep.Name)
 					flushDeployView(viewDepList, app)
 				}
 			}
@@ -95,7 +98,7 @@ var viewCmd = &cobra.Command{
 					depList := getDeploymentsByPod(pod)
 					for _, dep := range depList {
 						if dep.Name == oldItem {
-							viewComp.footer.SetText("new pod set:" + dep.Name + time.Now().Format("15:04:05"))
+							viewComp.footer.SetText(time.Now().Format("2006-01-02 15:04:05") + " pod update: " + dep.Name + "/" + pod.Name)
 							// 手动触发deploy选中，重新渲染详情和pod列表
 							deployAddItemSelected(dep.Name, app)()
 						}
@@ -110,8 +113,14 @@ var viewCmd = &cobra.Command{
 			if event.Key() == tcell.KeyRune { // 是字母
 				if l, ok := app.GetFocus().(*tview.List); ok { // 焦点是pod列表
 					if strings.Index(l.GetTitle(), "Pods") >= 0 { // 标题包含Pods
-						if event.Rune() == 'd' { // 删除pod
+						switch event.Rune() {
+						case 'd': // 删除pod
 							deleteCurrentPod(app)
+						}
+					} else if strings.Index(l.GetTitle(), "Deployments") >= 0 { // 标题包含Deployments
+						switch event.Rune() {
+						case 'r': // 修改副本数
+							scaleCurrentDeploy(app)
 						}
 					}
 				}
@@ -186,7 +195,7 @@ func renderDeployView(app *tview.Application) *tview.List {
 	})
 
 	list.SetBorder(true)
-	list.SetTitle("Deployment列表")
+	list.SetTitle("Deployments")
 
 	// 立刻渲染列表
 	flushDeployView(list, app)
@@ -223,7 +232,7 @@ func flushDeployView(list *tview.List, app *tview.Application) {
 			list.AddItem(dep.Name, fmt.Sprintf("%d/%d", dep.Status.ReadyReplicas, dep.Status.Replicas), rune(dep.Name[0]), deployAddItemSelected(depName, app))
 		}
 
-		list.SetTitle(fmt.Sprintf("deployments(%d)", len(depList)))
+		list.SetTitle(fmt.Sprintf("Deployments(%d)", len(depList)))
 	}
 
 	if newIndex == -1 { // 代表没有找到刚刚选中的deploy，可能被删除了，清空yaml详情和pod列表
@@ -356,5 +365,43 @@ func deleteCurrentPod(app *tview.Application) {
 
 		// 设置根为该模态框
 		app.SetRoot(modal, false)
+	}
+}
+
+// 修改选中的deploy副本数
+func scaleCurrentDeploy(app *tview.Application) {
+	if viewComp.depList.GetItemCount() > 0 {
+		depName, _ := viewComp.depList.GetItemText(viewComp.depList.GetCurrentItem())
+		scale, err := config.Clientset.AppsV1().Deployments(tools.CurrentDeployNS).GetScale(context.Background(), depName, metav1.GetOptions{})
+		if err != nil {
+			return
+		}
+
+		form := tview.NewForm().
+			AddInputField("Scale: ", strconv.Itoa(int(scale.Spec.Replicas)), 20, func(textToCheck string, lastChar rune) bool {
+				return unicode.IsNumber(lastChar)
+			}, func(text string) {
+				if rs, err := strconv.Atoi(text); err == nil {
+					// 修改副本数
+					scale.Spec.Replicas = int32(rs)
+				}
+			})
+
+		form.AddButton("Save", func() {
+			// 更新副本数
+			config.Clientset.AppsV1().Deployments(tools.CurrentDeployNS).UpdateScale(context.Background(), depName, scale, metav1.UpdateOptions{})
+			// 切回根为flex
+			app.SetRoot(viewComp.flex, true)
+			app.SetFocus(viewComp.depList)
+		}).AddButton("Quit", func() {
+			// 切回根为flex
+			app.SetRoot(viewComp.flex, true)
+			app.SetFocus(viewComp.depList)
+		})
+
+		form.SetBorder(true).SetTitle("scale replicas").SetTitleAlign(tview.AlignCenter)
+
+		// 设置根为该表单框
+		app.SetRoot(form, true)
 	}
 }
