@@ -46,7 +46,7 @@ var viewCmd = &cobra.Command{
 		viewComp.podList = viewPodList
 		viewComp.footer = viewFooter
 
-		grid := tview.NewGrid().
+		/*grid := tview.NewGrid().
 			SetRows(1, 0, 3).
 			SetColumns(30, 0, 30).
 			SetBorders(true).
@@ -56,7 +56,15 @@ var viewCmd = &cobra.Command{
 		// Layout for screens wider than 100 cells.
 		grid.AddItem(viewDepList, 1, 0, 1, 1, 0, 100, true).
 			AddItem(viewDetail, 1, 1, 1, 1, 0, 100, false).
-			AddItem(viewPodList, 1, 2, 1, 1, 0, 100, false)
+			AddItem(viewPodList, 1, 2, 1, 1, 0, 100, false)*/
+
+		flex := tview.NewFlex().
+			AddItem(viewDepList, 25, 1, true).
+			AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(viewNs, 0, 1, false).
+				AddItem(viewDetail, 0, 6, false).
+				AddItem(viewFooter, 5, 2, false), 0, 2, false).
+			AddItem(viewPodList, 25, 1, false)
 
 		// namespace默认选中第一个: default
 		viewNs.SetCurrentOption(0)
@@ -67,10 +75,7 @@ var viewCmd = &cobra.Command{
 		go func() {
 			for _ = range tools.DeployChan {
 				if viewComp.ok {
-					//viewComp.footer.SetText("yes: " + time.Now().Format("15:04:05"))
 					flushDeployView(viewDepList, app)
-				} else {
-					//viewComp.footer.SetText("no: " + time.Now().Format("15:04:05"))
 				}
 			}
 		}()
@@ -94,7 +99,7 @@ var viewCmd = &cobra.Command{
 			}
 		}()
 
-		if err := app.SetRoot(grid, true).EnableMouse(true).Run(); err != nil {
+		if err := app.SetRoot(flex, true).Run(); err != nil {
 			panic(err)
 		}
 
@@ -131,6 +136,8 @@ func renderNamespace(app *tview.Application) *tview.DropDown {
 	dropdown := tview.NewDropDown().SetLabel("Please select a namespace (hit Enter): ").
 		AddOption("default", selected("default"))
 
+	dropdown.SetBorder(true)
+
 	for _, ns := range nsList {
 		if ns.Name != "default" {
 			dropdown.AddOption(ns.Name, selected(ns.Name))
@@ -157,6 +164,9 @@ func renderDeployView(app *tview.Application) *tview.List {
 	list.SetFocusFunc(func() {
 		list.SetBackgroundColor(tcell.Color23)
 	})
+
+	list.SetBorder(true)
+	list.SetTitle("Deployment列表")
 
 	// 立刻渲染列表
 	flushDeployView(list, app)
@@ -192,6 +202,8 @@ func flushDeployView(list *tview.List, app *tview.Application) {
 			}
 			list.AddItem(dep.Name, fmt.Sprintf("%d/%d", dep.Status.ReadyReplicas, dep.Status.Replicas), rune(dep.Name[0]), deployAddItemSelected(depName, app))
 		}
+
+		list.SetTitle(fmt.Sprintf("deployments(%d)", len(depList)))
 	}
 
 	if newIndex == -1 { // 代表没有找到刚刚选中的deploy，可能被删除了，清空yaml详情和pod列表
@@ -250,6 +262,9 @@ func renderDetail(app *tview.Application) *tview.TextView {
 		textView.SetBackgroundColor(tcell.Color23)
 	})
 
+	textView.SetBorder(true)
+	textView.SetTitle("Yaml")
+
 	// 监听键盘事件
 	textView.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyESC {
@@ -274,6 +289,9 @@ func renderPodView(app *tview.Application) *tview.List {
 		list.SetBackgroundColor(tcell.Color23)
 	})
 
+	list.SetBorder(true)
+	list.SetTitle("Pods")
+
 	// esc切换到详情
 	list.SetDoneFunc(func() {
 		app.SetFocus(viewComp.detail)
@@ -285,6 +303,10 @@ func renderPodView(app *tview.Application) *tview.List {
 // 渲染底部说明
 func renderFooter(app *tview.Application) *tview.TextView {
 	textView := tview.NewTextView().SetWordWrap(true)
+
+	textView.SetBorder(true)
+	textView.SetTitle("events")
+
 	textView.SetBlurFunc(func() {
 		textView.SetBackgroundColor(tcell.Color16) // black
 	})
