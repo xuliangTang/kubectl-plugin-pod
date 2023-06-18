@@ -46,7 +46,7 @@ func getDeploy(deployName string) {
 
 // 根据gjson选择器过滤deploy详情
 func getDeployDetailByGjson(deployName string, item deployGetItem) {
-	dep, err := handlers.Factory().Apps().V1().Deployments().Lister().Deployments(currentNS).Get(deployName)
+	dep, err := handlers.Factory().Apps().V1().Deployments().Lister().Deployments(tools.CurrentDeployNS).Get(deployName)
 	if err != nil {
 		log.Println(err)
 		return
@@ -59,7 +59,7 @@ func getDeployDetailByGjson(deployName string, item deployGetItem) {
 	}
 
 	if item.path == DeployPathEvent { // 查看事件
-		eventList, err := handlers.Factory().Core().V1().Events().Lister().Events(currentNS).List(labels.Everything())
+		eventList, err := handlers.Factory().Core().V1().Events().Lister().Events(tools.CurrentDeployNS).List(labels.Everything())
 		if err != nil {
 			log.Println(err)
 			return
@@ -118,7 +118,7 @@ const revision = "deployment.kubernetes.io/revision"
 // 获取deploy下的pod列表
 func getPodsByDeploy(deploy *appsv1.Deployment) (pods []*v1.Pod) {
 	// 获取所有rs
-	rsList, err := handlers.Factory().Apps().V1().ReplicaSets().Lister().ReplicaSets(currentNS).List(labels.Everything())
+	rsList, err := handlers.Factory().Apps().V1().ReplicaSets().Lister().ReplicaSets(tools.CurrentDeployNS).List(labels.Everything())
 	if err != nil {
 		log.Println(err)
 		return
@@ -143,7 +143,7 @@ func getPodsByDeploy(deploy *appsv1.Deployment) (pods []*v1.Pod) {
 // 获取replicaSet关联的pod
 func getPodsByRs(rs *appsv1.ReplicaSet) (pods []*v1.Pod) {
 	// 获取所有pod
-	podList, err := handlers.Factory().Core().V1().Pods().Lister().Pods(currentNS).List(labels.Everything())
+	podList, err := handlers.Factory().Core().V1().Pods().Lister().Pods(tools.CurrentDeployNS).List(labels.Everything())
 	if err != nil {
 		log.Println(err)
 		return

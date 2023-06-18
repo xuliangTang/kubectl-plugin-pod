@@ -11,7 +11,6 @@ import (
 )
 
 // 交互式窗口当前的namespace
-var currentNS = "default"
 var myConsoleWriter = prompt.NewStdoutWriter() // 定义一个自己的writer
 
 var promptCmd = &cobra.Command{
@@ -46,7 +45,7 @@ func executorCmd(cmd *cobra.Command) func(in string) {
 			os.Exit(0)
 		case "use":
 			if tools.CheckArgsLen(args, 1) {
-				currentNS = args[0]
+				tools.CurrentDeployNS = args[0]
 				fmt.Println("切换namespace为:", blocks[1])
 			}
 		case "clear":

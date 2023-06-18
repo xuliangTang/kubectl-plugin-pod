@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubectl-plugin-pod/config"
+	"kubectl-plugin-pod/tools"
 	"log"
 	"regexp"
 	"strconv"
@@ -64,13 +65,13 @@ func (m scaleModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			num, _ := strconv.Atoi(numStr)
-			scale, err := config.Clientset.AppsV1().Deployments(currentNS).GetScale(context.Background(), m.deployName, metav1.GetOptions{})
+			scale, err := config.Clientset.AppsV1().Deployments(tools.CurrentDeployNS).GetScale(context.Background(), m.deployName, metav1.GetOptions{})
 			if err != nil {
 				log.Println(err)
 				return m, tea.Quit
 			}
 			scale.Spec.Replicas = int32(num)
-			_, err = config.Clientset.AppsV1().Deployments(currentNS).UpdateScale(context.Background(), m.deployName, scale, metav1.UpdateOptions{})
+			_, err = config.Clientset.AppsV1().Deployments(tools.CurrentDeployNS).UpdateScale(context.Background(), m.deployName, scale, metav1.UpdateOptions{})
 			if err != nil {
 				log.Println(err)
 				return m, tea.Quit

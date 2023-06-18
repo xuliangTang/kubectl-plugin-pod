@@ -15,7 +15,7 @@ import (
 // 获取deployment列表
 func listDeploy() []*appsv1.Deployment {
 	depList, err := handlers.Factory().Apps().V1().Deployments().Lister().
-		Deployments(currentNS).List(labels.Everything())
+		Deployments(tools.CurrentDeployNS).List(labels.Everything())
 	if err != nil {
 		log.Println(err)
 		return nil
