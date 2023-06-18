@@ -21,6 +21,7 @@ type viewComponent struct {
 	detail  *tview.TextView
 	podList *tview.List
 	footer  *tview.TextView
+	ok      bool
 }
 
 var viewComp = &viewComponent{}
@@ -32,33 +33,66 @@ var viewCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		app := tview.NewApplication()
 
-		ns := renderNamespace(app)
-		list := renderDeployView(app)
-		detail := renderDetail(app)
-		pod := renderPodView(app)
-		footer := renderFooter(app)
+		viewNs := renderNamespace(app)
+		viewDepList := renderDeployView(app)
+		viewDetail := renderDetail(app)
+		viewPodList := renderPodView(app)
+		viewFooter := renderFooter(app)
 
 		// 代表加入组件组成
-		viewComp.ns = ns
-		viewComp.detail = detail
-		viewComp.depList = list
-		viewComp.podList = pod
-		viewComp.footer = footer
+		viewComp.ns = viewNs
+		viewComp.detail = viewDetail
+		viewComp.depList = viewDepList
+		viewComp.podList = viewPodList
+		viewComp.footer = viewFooter
 
 		grid := tview.NewGrid().
 			SetRows(1, 0, 3).
 			SetColumns(30, 0, 30).
 			SetBorders(true).
-			AddItem(ns, 0, 0, 1, 3, 0, 0, false).
-			AddItem(footer, 2, 0, 1, 3, 0, 0, false)
+			AddItem(viewNs, 0, 0, 1, 3, 0, 0, false).
+			AddItem(viewFooter, 2, 0, 1, 3, 0, 0, false)
 
 		// Layout for screens wider than 100 cells.
-		grid.AddItem(list, 1, 0, 1, 1, 0, 100, true).
-			AddItem(detail, 1, 1, 1, 1, 0, 100, false).
-			AddItem(pod, 1, 2, 1, 1, 0, 100, false)
+		grid.AddItem(viewDepList, 1, 0, 1, 1, 0, 100, true).
+			AddItem(viewDetail, 1, 1, 1, 1, 0, 100, false).
+			AddItem(viewPodList, 1, 2, 1, 1, 0, 100, false)
 
 		// namespace默认选中第一个: default
-		ns.SetCurrentOption(0)
+		viewNs.SetCurrentOption(0)
+
+		viewComp.ok = true
+
+		// 监听deploy，有变更后重新渲染列表
+		go func() {
+			for _ = range tools.DeployChan {
+				if viewComp.ok {
+					//viewComp.footer.SetText("yes: " + time.Now().Format("15:04:05"))
+					flushDeployView(viewDepList, app)
+				} else {
+					//viewComp.footer.SetText("no: " + time.Now().Format("15:04:05"))
+				}
+			}
+		}()
+
+		// 监听pod，如果正在查看，则更新
+		go func() {
+			for pod := range tools.PodChan {
+				if viewDepList.GetItemCount() > 0 {
+					// 获取当前选中的deploy名称
+					oldItem, _ := viewDepList.GetItemText(viewDepList.GetCurrentItem())
+					depList := getDeploymentsByPod(pod)
+					for _, dep := range depList {
+						if dep.Name == oldItem {
+							viewComp.footer.SetText("new pod set:" + dep.Name + time.Now().Format("15:04:05"))
+							// 手动触发deploy选中，重新渲染详情和pod列表
+							deployAddItemSelected(dep.Name, app)()
+						}
+					}
+					app.ForceDraw()
+				}
+			}
+		}()
 
 		if err := app.SetRoot(grid, true).EnableMouse(true).Run(); err != nil {
 			panic(err)
@@ -79,15 +113,9 @@ func renderNamespace(app *tview.Application) *tview.DropDown {
 	selected := func(ns string) func() {
 		return func() {
 			// 清空其他模块
-			if viewComp.depList != nil {
-				viewComp.depList.Clear()
-			}
-			if viewComp.detail != nil {
-				viewComp.detail.SetText("")
-			}
-			if viewComp.podList != nil {
-				viewComp.podList.Clear()
-			}
+			viewComp.depList.Clear()
+			viewComp.detail.Clear()
+			viewComp.podList.Clear()
 
 			// 切换命名空间
 			tools.CurrentDeployNS = ns
@@ -104,7 +132,9 @@ func renderNamespace(app *tview.Application) *tview.DropDown {
 		AddOption("default", selected("default"))
 
 	for _, ns := range nsList {
-		dropdown.AddOption(ns.Name, selected(ns.Name))
+		if ns.Name != "default" {
+			dropdown.AddOption(ns.Name, selected(ns.Name))
+		}
 	}
 
 	// 监听回车切换焦点到deploy列表
@@ -131,14 +161,6 @@ func renderDeployView(app *tview.Application) *tview.List {
 	// 立刻渲染列表
 	flushDeployView(list, app)
 
-	// 监听deploy，有变更后重新渲染列表
-	go func() {
-		for _ = range tools.DeployChan {
-			viewComp.footer.SetText("监听到了新变更，重新渲染 " + time.Now().Format("15:04:05"))
-			flushDeployView(list, app)
-		}
-	}()
-
 	// esc切换到详情
 	list.SetDoneFunc(func() {
 		app.SetFocus(viewComp.ns)
@@ -150,16 +172,38 @@ func renderDeployView(app *tview.Application) *tview.List {
 // 重新渲染deploy列表
 func flushDeployView(list *tview.List, app *tview.Application) {
 	// 查询deploy列表
-	list.Clear()
 	depList := listDeploy()
+
+	// 获取当前选中的deploy名称
+	var oldItem string
+	if list.GetItemCount() > 0 {
+		oldItem, _ = list.GetItemText(list.GetCurrentItem())
+	}
+	newIndex := -1
+
 	if depList != nil {
+		list.Clear()
 		sort.Sort(sortDeployByName(depList)) // 按首字母排序
 
-		for _, dep := range depList {
+		for index, dep := range depList {
 			depName := dep.Name
+			if oldItem == depName { // 代表新列表的这个选项是之前选中的
+				newIndex = index
+			}
 			list.AddItem(dep.Name, fmt.Sprintf("%d/%d", dep.Status.ReadyReplicas, dep.Status.Replicas), rune(dep.Name[0]), deployAddItemSelected(depName, app))
 		}
 	}
+
+	if newIndex == -1 { // 代表没有找到刚刚选中的deploy，可能被删除了，清空yaml详情和pod列表
+		newIndex = 0
+		if viewComp.ok {
+			viewComp.detail.Clear()
+			viewComp.podList.Clear()
+			app.SetFocus(viewComp.depList)
+		}
+	}
+
+	list.SetCurrentItem(newIndex) // 重新定位选中项
 
 	// 退出选项
 	list.AddItem("Quit", "Press to exit", 'q', func() {

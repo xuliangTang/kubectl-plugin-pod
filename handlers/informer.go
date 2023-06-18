@@ -8,6 +8,7 @@ import (
 
 var fact informers.SharedInformerFactory
 var once sync.Once
+var syncDone bool
 
 // Factory 初始化informerFactory
 func Factory() informers.SharedInformerFactory {
@@ -22,6 +23,7 @@ func Factory() informers.SharedInformerFactory {
 		ch := make(chan struct{})
 		fact.Start(ch)
 		fact.WaitForCacheSync(ch)
+		syncDone = true
 	})
 
 	return fact

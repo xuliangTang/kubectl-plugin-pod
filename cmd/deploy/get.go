@@ -10,6 +10,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
 	"kubectl-plugin-pod/handlers"
 	"kubectl-plugin-pod/tools"
@@ -159,6 +160,38 @@ func getPodsByRs(rs *appsv1.ReplicaSet) (pods []*v1.Pod) {
 	}
 
 	return
+}
+
+// 获取pod的所属deploy
+func getDeploymentsByPod(pod *v1.Pod) (deployments []*appsv1.Deployment) {
+	rsList, _ := handlers.Factory().Apps().V1().ReplicaSets().Lister().ReplicaSets(tools.CurrentDeployNS).List(labels.Everything())
+
+	for _, ref := range pod.OwnerReferences {
+		for _, rs := range rsList {
+			if ref.UID != rs.UID {
+				continue
+			}
+
+			for _, rsRef := range rs.OwnerReferences {
+				if getDep := getDeployByUid(rsRef.UID); getDep != nil {
+					deployments = append(deployments, getDep)
+				}
+			}
+		}
+	}
+
+	return
+}
+
+// 获取rs uid的所属deployment
+func getDeployByUid(uid types.UID) *appsv1.Deployment {
+	depList, _ := handlers.Factory().Apps().V1().Deployments().Lister().Deployments(tools.CurrentDeployNS).List(labels.Everything())
+	for _, dep := range depList {
+		if dep.UID == uid {
+			return dep
+		}
+	}
+	return nil
 }
 
 var (
