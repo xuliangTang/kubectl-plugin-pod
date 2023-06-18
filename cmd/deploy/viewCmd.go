@@ -1,21 +1,26 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"kubectl-plugin-pod/config"
 	"kubectl-plugin-pod/handlers"
 	"kubectl-plugin-pod/tools"
 	"log"
 	"sigs.k8s.io/yaml"
 	"sort"
+	"strings"
 	"time"
 )
 
 // view组成
 type viewComponent struct {
+	flex    *tview.Flex
 	ns      *tview.DropDown
 	depList *tview.List
 	detail  *tview.TextView
@@ -65,6 +70,7 @@ var viewCmd = &cobra.Command{
 				AddItem(viewDetail, 0, 6, false).
 				AddItem(viewFooter, 5, 2, false), 0, 2, false).
 			AddItem(viewPodList, 25, 1, false)
+		viewComp.flex = flex
 
 		// namespace默认选中第一个: default
 		viewNs.SetCurrentOption(0)
@@ -98,6 +104,20 @@ var viewCmd = &cobra.Command{
 				}
 			}
 		}()
+
+		// 监听键盘事件
+		app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+			if event.Key() == tcell.KeyRune { // 是字母
+				if l, ok := app.GetFocus().(*tview.List); ok { // 焦点是pod列表
+					if strings.Index(l.GetTitle(), "Pods") >= 0 { // 标题包含Pods
+						if event.Rune() == 'd' { // 删除pod
+							deleteCurrentPod(app)
+						}
+					}
+				}
+			}
+			return event
+		})
 
 		if err := app.SetRoot(flex, true).Run(); err != nil {
 			panic(err)
@@ -315,4 +335,26 @@ func renderFooter(app *tview.Application) *tview.TextView {
 	})
 
 	return textView
+}
+
+// 删除选中的pod
+func deleteCurrentPod(app *tview.Application) {
+	if viewComp.podList.GetItemCount() > 0 {
+		modal := tview.NewModal().
+			SetText("Confirm deleting the pod").
+			AddButtons([]string{"yes", "no"}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				if buttonLabel == "yes" {
+					podName, _ := viewComp.podList.GetItemText(viewComp.podList.GetCurrentItem())
+					config.Clientset.CoreV1().Pods(tools.CurrentDeployNS).Delete(context.Background(), podName, metav1.DeleteOptions{})
+				}
+
+				// 切回根为flex
+				app.SetRoot(viewComp.flex, true)
+				app.SetFocus(viewComp.podList)
+			})
+
+		// 设置根为该模态框
+		app.SetRoot(modal, false)
+	}
 }
